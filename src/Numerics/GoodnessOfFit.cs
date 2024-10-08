@@ -29,6 +29,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using MathNet.Numerics.Statistics;
 
 namespace MathNet.Numerics
@@ -71,6 +72,47 @@ namespace MathNet.Numerics
         public static double PopulationStandardError(IEnumerable<double> modelledValues, IEnumerable<double> observedValues)
         {
             return StandardError(modelledValues, observedValues, 0);
+        }
+
+        /// <summary>
+        /// Computes the Kolmogorov-Smirnov statistic, which measures the maximum
+        /// deviation between the empirical distribution of observed values and a given
+        /// theoretical distribution. This test is typically used to assess how well 
+        /// a set of observed data matches a specific distribution function (such as 
+        /// a normal distribution or a custom probability distribution).
+        /// </summary>
+        /// <param name="observedValues">
+        /// A sequence of observed/actual values representing the empirical data set. Must be sorted in ascending order.
+        /// </param>
+        /// <param name="modelledValueFunction">
+        /// A function representing the cumulative distribution function (CDF) of the target theoretical distribution.
+        /// The function should accept a double as input and return the expected value for the given observed data point.
+        /// </param>
+        /// <returns>
+        /// The Kolmogorov-Smirnov Dn statistic, representing the maximum absolute difference 
+        /// between the empirical distribution of the observed values and the provided theoretical distribution.
+        /// </returns>
+        /// <exception cref="ArgumentException">Thrown if the observedValues collection is empty.</exception>
+        public static double KolmogorovSmirnov(IEnumerable<double> observedValues, Func<double, double> modelledValueFunction)
+        {
+            if (!observedValues.Any())
+            {
+                throw new ArgumentException("Observed values cannot be empty");
+            }
+
+            int count = observedValues.Count();
+            double firstExpectedValue = modelledValueFunction(observedValues.ElementAt(0));
+
+            double max = Math.Max(Math.Abs(firstExpectedValue), Math.Abs(1.0 / count - firstExpectedValue));
+            for (int i = 1; i < count; i++)
+            {
+                double expected = modelledValueFunction(observedValues.ElementAt(i));
+                double absoluteDeviation = Math.Abs(expected - i / (double)count);
+                double upperBoundDeviation = Math.Abs((i + 1) / (double)count - expected);
+                max = Math.Max(max, Math.Max(absoluteDeviation, upperBoundDeviation));
+            }
+
+            return max;
         }
 
         /// <summary>
